@@ -1,0 +1,98 @@
+from textblob import TextBlob
+import nltk
+import json
+from nltk import ne_chunk, pos_tag, word_tokenize
+from nltk.tree import Tree
+import string
+import re
+
+
+#removes non ascii characters
+def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
+#loads data file
+data = json.load(open('/Users/nickparedes/Desktop/gg2018.json'))
+
+
+tweets = list()
+ids = list()
+
+#creates list of tweets/ids with data
+for tw  in data:
+	tweets.append(removeNonAscii(tw['text']))
+	ids.append(tw['id_str'])
+
+#returns names from text
+def get_continuous_chunks(text):
+    chunked = ne_chunk(pos_tag(word_tokenize(text)))
+    prev = None
+    continuous_chunk = []
+    current_chunk = []
+
+    for i in chunked:
+        if type(i) == Tree:
+            current_chunk.append(" ".join([token for token, pos in i.leaves()]))
+        elif current_chunk:
+            named_entity = " ".join(current_chunk)
+            if named_entity not in continuous_chunk:
+                continuous_chunk.append(named_entity)
+                current_chunk = []
+        else:
+            continue
+
+    if continuous_chunk:
+        named_entity = " ".join(current_chunk)
+        if named_entity not in continuous_chunk:
+            continuous_chunk.append(named_entity)
+
+    return continuous_chunk
+
+
+
+
+handle_pattern = r"(^[@].*[" "])
+
+names = list()
+noms = list()
+winners = list()
+#gets relevant people
+def get_names(tweetz):
+    agh = 0
+    for tweet in tweetz:
+        agh = agh + 1
+        if (not ("RT" in tweet)):
+            if ("grat" in tweet):
+                if("nomi" in tweet):           
+                    if (x != [] and ("w" in tweet)):
+                        noms.append([x])
+                else:
+                    if (x != [] and ("w" in tweet)):
+                        winners.append([x])
+                        
+    return noms, winners
+
+sentiments = list()
+def get_sentiment(tweetz):
+    for tweet in tweetz:
+        x = TextBlob(tweet)
+        sentiments.append(x.sentiment)
+    return sentiments
+
+
+#print(len(tweets[0:10000]))
+print(get_names(tweets))
+#a = TextBlob(tweets[0])
+#print(a.sentiment)
+#textt = "hey Mark."
+#print(tweets[1000:1015])
+#print(get_continuous_chunks(tweets[0]))
+#print(get_sentiment(tweets))
+                    
+
+
+
+
+
+
+
+
+
