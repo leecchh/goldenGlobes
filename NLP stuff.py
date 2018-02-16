@@ -54,6 +54,26 @@ handle_pattern = r"(^[@].*[" "])"
 
 handle_pattern = r"(^[@][0-9a-zA-Z_]+)"
 
+globe_words = ["Globe", 'goldenglobe','GoldenGlobe']
+
+
+
+def get_most_common(listt):
+    x = []
+    for item in listt:
+        x.append([item[0], item[1]])
+    return x
+        
+        
+def consolidate_names(names_list):
+    for item1 in names_list:
+        for item2 in names_list:
+            if (item1[0] in item2[0]):
+                item2[1] = item1[1] + item2[1]
+                if (item1 in names_list):
+                    names_list.remove(item1)
+    return names_list
+
 host = list()
 host_list = []
 noms = []
@@ -79,15 +99,18 @@ def get_names(tweetz):
                         winners.append(x)
     for sublist in host:
         for item in sublist:
-            host_list.append(item[0])
+            if (not contain(globe_words, item)):
+                host_list.append(item[0])
     for sublist in noms:
         for item in sublist:
-            noms_list.append(item[0])
+            if (not contain(globe_words, item)):
+                noms_list.append(item[0])
     for sublist in winners:
         for item in sublist:
-            winners_list.append(item[0])
+            if (not contain(globe_words, item)):
+                winners_list.append(item[0])
     data = Counter(winners_list)
-    return data.most_common()
+    return consolidate_names(get_most_common(data.most_common()))
 
 sentiments = list()
 def get_sentiment(tweetz):
@@ -97,15 +120,16 @@ def get_sentiment(tweetz):
     return sentiments
 
 
-#print(len(tweets[0:10000]))
+
 print(get_names(tweets))
-#a = TextBlob(tweets[0])
+
 #print(a.sentiment)
 #textt = "hey Mark."
 #print(tweets[1000:1015])
 #print(get_continuous_chunks(tweets[0]))
 #print(get_sentiment(tweets))
- 
+                    
+
 
 
 
