@@ -12,7 +12,7 @@ from collections import Counter
 def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
 #loads data file
 data = json.load(open('/Users/nickparedes/Desktop/gg2018.json'))
-
+#data = json.load(open('/Users/nickparedes/Desktop/goldenglobes.json'))
 
 tweets = list()
 ids = list()
@@ -20,7 +20,7 @@ ids = list()
 #creates list of tweets/ids with data
 for tw  in data:
 	tweets.append(removeNonAscii(tw['text']))
-	ids.append(tw['id_str'])
+	#ids.append(tw['id_str'])
 
 #returns names from text
 def get_continuous_chunks(text):
@@ -44,10 +44,22 @@ def contain(wordlist, tweet):
             x = True
             return x
     return x
+
+def containz(wordlist, tweet):
+    x = 0
+    for word in wordlist:
+        if word in tweet:
+            x = x + 1
+    if (x > 1):
+        return True
+    else:
+        return False
+        
         
 
 winner_words = ['winner', 'win', 'won', 'goes to', 'ongrat', 'goes to']
-
+#categories = [['icture', 'rama'], ['icture','usical', 'omedy'], ['ctress', 'rama'], ['ctor', 'rama'], ['ctress', 'usical', 'omedy'], ['ctor','usical', 'omedy'], ['ctress','upporting'], ['ctor', 'upporting'], ['irector'], ['creenplay'], ['nimated'], ['oreign', 'anguage'], ['score', 'ore'], ['Song', 'song'], ['elevision', 'rama'], ['elevision', 'usical', 'omedy'], ['elevision', 'imited', 'eries', 'ade for'], ['ctress','imited', 'eries', 'ade for'], ['ctor','imited', 'eries', 'ade for'], ['ctress', 'elevision', 'eries', 'rama'],['ctor', 'elevision', 'eries', 'rama'], ['ctress', 'elevision', 'eries', 'usical', 'omedy'],['ctor', 'elevision', 'eries', 'usical', 'omedy'], 'Best Performance by an Actress in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Best Performance by an Actor in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Cecil B. DeMille Award']
+categories = ['Best Motion Picture - Drama', 'Best Motion Picture - Musical or Comedy', 'Best Performance by an Actress in a Motion Picture - Drama', 'Best Performance by an Actor in a Motion Picture - Drama', 'Best Performance by an Actress in a Motion Picture - Musical or Comedy', 'Best Performance by an Actor in a Motion Picture - Musical or Comedy', 'Best Performance by an Actress in a Supporting Role in any Motion Picture', 'Best Performance by an Actor in a Supporting Role in any Motion Picture', 'Best Director - Motion Picture', 'Best Screenplay - Motion Picture', 'Best Motion Picture - Animated', 'Best Motion Picture - Foreign Language', 'Best Original Score - Motion Picture', 'Best Original Song - Motion Picture', 'Best Television Series - Drama', 'Best Television Series - Musical or Comedy', 'Best Television Limited Series or Motion Picture Made for Television', 'Best Performance by an Actress in a Limited Series or a Motion Picture Made for Television', 'Best Performance by an Actor in a Limited Series or a Motion Picture Made for Television', 'Best Performance by an Actress In A Television Series - Drama', 'Best Performance by an Actor In A Television Series - Drama', 'Best Performance by an Actress in a Television Series - Musical or Comedy', 'Best Performance by an Actor in a Television Series - Musical or Comedy', 'Best Performance by an Actress in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Best Performance by an Actor in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Cecil B. DeMille Award']
 
 
 handle_pattern = r"(^[@].*[" "])"
@@ -81,36 +93,96 @@ noms_list = []
 winners = []
 winners_list = []
 #gets relevant people
+
+
+#helper for findNames
+def extract_entity_names(t):
+	entity_names = []
+	if hasattr(t, 'label') and t.label:
+		if t.label() == 'NE':
+			entity_names.append(' '.join([child[0] for child in t]))
+		else:
+			for child in t:
+				entity_names.extend(extract_entity_names(child))
+	return entity_names
+
+
+def connect_winners(nameList, categories, tweets):
+    results = []
+    for tweet in tweets:
+        for name in nameList:
+            for category in categories:
+                if(not ('lobe' in name[0])):
+                    if ((name[0] in tweet) and (category in tweet)):
+                        results.append([name[0], category])
+    return results[0:100]
+                    
+
+#finds number of occurences of all names in a set of tweets 
+def findNames(tws):
+	nameDict = {}
+	tokenized_sentences = [nltk.word_tokenize(tweet) for tweet in tws]
+	tagged_sentences = [nltk.pos_tag(sentence) for sentence in tokenized_sentences]
+	chunked_sentences = nltk.ne_chunk_sents(tagged_sentences, binary=True)
+
+	for tree in chunked_sentences:
+		names = extract_entity_names(tree)
+		for name in names:
+                    tempName = name.lower()
+                    isAward = False
+                    for cat in categories:
+                        if tempName in cat.lower():
+                            isAward = True
+			if not junkPattern.match(name) and not isAward:
+				if name in nameDict:
+					nameDict[name] = nameDict[name]+1
+				else:
+					nameDict[name] = 1
+
+	nameList = list()
+	for key,value in nameDict.items():
+		nameList.append((key,value))
+	nameList = sorted(nameList, key=lambda pair: pair[1], reverse=True)
+	return nameList
+
+
+
+
+
+
+junk = "(([gG][oO][lL][dD][eE][nN])|([gG][lL][oO][bB][eE][sS])|(RT))"
+junkPat = ".*"+junk+".*"
+junkPattern = re.compile(junkPat)
+
+
+def concat(pplawardlist):
+    x = []
+    for ent1 in pplawardlist:
+        for ent2 in pplawardlist:
+            if (not ((ent1[0] in ent2[0]) and (ent1[1] == ent2[1]))):
+                x.append(ent2[0] +''+ ent2[1])
+    return Counter(x).most_common()
+
+
+
+
+
+
 def get_names(tweetz):
     for tweet in tweetz:
         if (not ("RT" in tweet)):
             if("omin" in tweet):
-                x = get_continuous_chunks(tweet)
-                if (x != []):
-                    noms.append(x)
+                host.append(tweet)
             elif("host" in tweet):
-                x = get_continuous_chunks(tweet)
-                if (x != []):
-                    host.append(x)
+                host.append(tweet)
+            elif("best" in tweet):
+                noms.append(tweet)
             else:
                 if contain(winner_words, tweet):
-                    x = get_continuous_chunks(tweet)
-                    if (x != []):
-                        winners.append(x)
-    for sublist in host:
-        for item in sublist:
-            if (not contain(globe_words, item)):
-                host_list.append(item[0])
-    for sublist in noms:
-        for item in sublist:
-            if (not contain(globe_words, item)):
-                noms_list.append(item[0])
-    for sublist in winners:
-        for item in sublist:
-            if (not contain(globe_words, item)):
-                winners_list.append(item[0])
-    data = Counter(winners_list)
-    return consolidate_names(get_most_common(data.most_common()))
+                    noms.append(tweet)
+    return concat(connect_winners(findNames(noms)[0:120], categories, noms))
+#    return findNames(noms)[0:120]
+ 
 
 sentiments = list()
 def get_sentiment(tweetz):
@@ -129,12 +201,4 @@ print(get_names(tweets))
 #print(get_continuous_chunks(tweets[0]))
 #print(get_sentiment(tweets))
                     
-
-
-
-
-
-
-
-
 
