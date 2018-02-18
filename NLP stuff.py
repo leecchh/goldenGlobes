@@ -6,34 +6,111 @@ from nltk.tree import Tree
 import string
 import re
 from collections import Counter
+from urllib2 import urlopen
+import sys
+from bs4 import BeautifulSoup
 
 
-#removes non ascii characters
-def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
-#loads data file
+
+
+
+
+
+
 data = json.load(open('/Users/nickparedes/Desktop/gg2018.json'))
 #data = json.load(open('/Users/nickparedes/Desktop/goldenglobes.json'))
 
 tweets = list()
 ids = list()
 
+winner_words = ['winner', 'win', 'won', 'goes to', 'ongrat', 'goes to']
+#categories = [['icture', 'rama'], ['icture','usical', 'omedy'], ['ctress', 'rama'], ['ctor', 'rama'], ['ctress', 'usical', 'omedy'], ['ctor','usical', 'omedy'], ['ctress','upporting'], ['ctor', 'upporting'], ['irector'], ['creenplay'], ['nimated'], ['oreign', 'anguage'], ['score', 'ore'], ['Song', 'song'], ['elevision', 'rama'], ['elevision', 'usical', 'omedy'], ['elevision', 'imited', 'eries', 'ade for'], ['ctress','imited', 'eries', 'ade for'], ['ctor','imited', 'eries', 'ade for'], ['ctress', 'elevision', 'eries', 'rama'],['ctor', 'elevision', 'eries', 'rama'], ['ctress', 'elevision', 'eries', 'usical', 'omedy'],['ctor', 'elevision', 'eries', 'usical', 'omedy'], 'Best Performance by an Actress in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Best Performance by an Actor in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Cecil B. DeMille Award']
+categories = ['Best Motion Picture - Drama', 'Best Motion Picture - Musical or Comedy', 'Best Performance by an Actress in a Motion Picture - Drama', 'Best Performance by an Actor in a Motion Picture - Drama', 'Best Performance by an Actress in a Motion Picture - Musical or Comedy', 'Best Performance by an Actor in a Motion Picture - Musical or Comedy', 'Best Performance by an Actress in a Supporting Role in any Motion Picture', 'Best Performance by an Actor in a Supporting Role in any Motion Picture', 'Best Director - Motion Picture', 'Best Screenplay - Motion Picture', 'Best Motion Picture - Animated', 'Best Motion Picture - Foreign Language', 'Best Original Score - Motion Picture', 'Best Original Song - Motion Picture', 'Best Television Series - Drama', 'Best Television Series - Musical or Comedy', 'Best Television Limited Series or Motion Picture Made for Television', 'Best Performance by an Actress in a Limited Series or a Motion Picture Made for Television', 'Best Performance by an Actor in a Limited Series or a Motion Picture Made for Television', 'Best Performance by an Actress In A Television Series - Drama', 'Best Performance by an Actor In A Television Series - Drama', 'Best Performance by an Actress in a Television Series - Musical or Comedy', 'Best Performance by an Actor in a Television Series - Musical or Comedy', 'Best Performance by an Actress in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Best Performance by an Actor in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Cecil B. DeMille Award']
+
+
+handle_pattern = r"(^[@].*[" "])"
+
+handle_pattern = r"(^[@][0-9a-zA-Z_]+)"
+
+globe_words = ["Globe", 'goldenglobe','GoldenGlobe']
+
+host = list()
+host_list = []
+noms = []
+noms_list = []
+winners = []
+winners_list = []
+
+junk = "(([gG][oO][lL][dD][eE][nN])|([gG][lL][oO][bB][eE][sS])|(RT))"
+junkPat = ".*"+junk+".*"
+junkPattern = re.compile(junkPat)
+
+
+#removes non ascii characters
+def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
+#loads data file
+
 #creates list of tweets/ids with data
 for tw  in data:
 	tweets.append(removeNonAscii(tw['text']))
 	#ids.append(tw['id_str'])
 
-#returns names from text
-def get_continuous_chunks(text):
-    tokens = nltk.word_tokenize(text)
-    tagged = nltk.pos_tag(tokens)
-    chunks = nltk.chunk.ne_chunk(tagged)
-    
-    entity_names = []
-    for word_tuple in chunks.pos():
-            if word_tuple[1] == 'PERSON' or word_tuple[1] == 'ORGANIZATION':
-                    if word_tuple[0][0].lower() != "golden" and word_tuple[0][0].lower() != "globes" and word_tuple[0][0].lower() != "goldenglobes" and word_tuple[0][0].lower() != "best":
-                            entity_names.append(word_tuple[0])
-    return entity_names
+
+
+
+
+
+def verify_name(act_name, string_name):
+
+	#The actual query
+	url = "http://www.imdb.com/search/name?name=" + string_name 
+
+	webFile = urlopen(url)
+	webHtml = webFile.read()	
+	soup = BeautifulSoup(webHtml,"html.parser")
+
+	webAll = soup.findAll("a", {"href": re.compile("/name/[a-zA-Z0-9]+")})
+
+	for match in webAll:
+		if match.string != None:
+			if act_name.lower() in match.string.lower():
+				#print(act_name.lower(), match.string.lower())
+				return (match.string)	
+
+def verify_title(act_title, string_name):
+
+	#The actual query
+	url = "http://www.imdb.com/search/title?title=" + string_name 
+
+	webFile = urlopen(url)
+	webHtml = webFile.read()	
+	soup = BeautifulSoup(webHtml,"html.parser")
+
+	webAll = soup.findAll("a", {"href": re.compile("/title/[a-zA-Z0-9]+")})
+
+	for match in webAll:
+		if match.string != None:
+			if act_title.lower() in match.string.lower():
+				#print(act_title.lower(), match.string.lower())
+				return (match.string)	
+
+def imdb(name):
+	
+	title = name	
+	#Search for spaces in the title string
+	raw_string = re.compile(r' ')
+	new_list = []
+	#Replace spaces with a plus sign
+	searchstring = raw_string.sub('+', title)
+
+
+	if verify_name(title, searchstring) != None:
+		new_list.append(verify_name(title, searchstring)[1:-1])
+	else:
+		new_list.append(None)
+	new_list.append(verify_title(title, searchstring))
+
+	return (new_list)
 
 
 
@@ -57,19 +134,6 @@ def containz(wordlist, tweet):
         
         
 
-winner_words = ['winner', 'win', 'won', 'goes to', 'ongrat', 'goes to']
-#categories = [['icture', 'rama'], ['icture','usical', 'omedy'], ['ctress', 'rama'], ['ctor', 'rama'], ['ctress', 'usical', 'omedy'], ['ctor','usical', 'omedy'], ['ctress','upporting'], ['ctor', 'upporting'], ['irector'], ['creenplay'], ['nimated'], ['oreign', 'anguage'], ['score', 'ore'], ['Song', 'song'], ['elevision', 'rama'], ['elevision', 'usical', 'omedy'], ['elevision', 'imited', 'eries', 'ade for'], ['ctress','imited', 'eries', 'ade for'], ['ctor','imited', 'eries', 'ade for'], ['ctress', 'elevision', 'eries', 'rama'],['ctor', 'elevision', 'eries', 'rama'], ['ctress', 'elevision', 'eries', 'usical', 'omedy'],['ctor', 'elevision', 'eries', 'usical', 'omedy'], 'Best Performance by an Actress in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Best Performance by an Actor in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Cecil B. DeMille Award']
-categories = ['Best Motion Picture - Drama', 'Best Motion Picture - Musical or Comedy', 'Best Performance by an Actress in a Motion Picture - Drama', 'Best Performance by an Actor in a Motion Picture - Drama', 'Best Performance by an Actress in a Motion Picture - Musical or Comedy', 'Best Performance by an Actor in a Motion Picture - Musical or Comedy', 'Best Performance by an Actress in a Supporting Role in any Motion Picture', 'Best Performance by an Actor in a Supporting Role in any Motion Picture', 'Best Director - Motion Picture', 'Best Screenplay - Motion Picture', 'Best Motion Picture - Animated', 'Best Motion Picture - Foreign Language', 'Best Original Score - Motion Picture', 'Best Original Song - Motion Picture', 'Best Television Series - Drama', 'Best Television Series - Musical or Comedy', 'Best Television Limited Series or Motion Picture Made for Television', 'Best Performance by an Actress in a Limited Series or a Motion Picture Made for Television', 'Best Performance by an Actor in a Limited Series or a Motion Picture Made for Television', 'Best Performance by an Actress In A Television Series - Drama', 'Best Performance by an Actor In A Television Series - Drama', 'Best Performance by an Actress in a Television Series - Musical or Comedy', 'Best Performance by an Actor in a Television Series - Musical or Comedy', 'Best Performance by an Actress in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Best Performance by an Actor in a Supporting Role in a Series, Limited Series or Motion Picture Made for Television', 'Cecil B. DeMille Award']
-
-
-handle_pattern = r"(^[@].*[" "])"
-
-handle_pattern = r"(^[@][0-9a-zA-Z_]+)"
-
-globe_words = ["Globe", 'goldenglobe','GoldenGlobe']
-
-
-
 def get_most_common(listt):
     x = []
     for item in listt:
@@ -86,12 +150,7 @@ def consolidate_names(names_list):
                     names_list.remove(item1)
     return names_list
 
-host = list()
-host_list = []
-noms = []
-noms_list = []
-winners = []
-winners_list = []
+
 #gets relevant people
 
 
@@ -133,7 +192,7 @@ def findNames(tws):
                     for cat in categories:
                         if tempName in cat.lower():
                             isAward = True
-			if not junkPattern.match(name) and not isAward:
+			if not junkPattern.match(name) and not isAward and (imdb(name) != []):
 				if name in nameDict:
 					nameDict[name] = nameDict[name]+1
 				else:
@@ -148,19 +207,12 @@ def findNames(tws):
 
 
 
-
-
-junk = "(([gG][oO][lL][dD][eE][nN])|([gG][lL][oO][bB][eE][sS])|(RT))"
-junkPat = ".*"+junk+".*"
-junkPattern = re.compile(junkPat)
-
-
 def concat(pplawardlist):
     x = []
     for ent1 in pplawardlist:
         for ent2 in pplawardlist:
             if (not ((ent1[0] in ent2[0]) and (ent1[1] == ent2[1]))):
-                x.append(ent2[0] +''+ ent2[1])
+                x.append(ent2[0] +' '+ ent2[1])
     return Counter(x).most_common()
 
 
@@ -194,21 +246,9 @@ def get_names(tweetz):
 #    return findNames(noms)[0:120]
  
 
-sentiments = list()
-def get_sentiment(tweetz):
-    for tweet in tweetz:
-        x = TextBlob(tweet)
-        sentiments.append(x.sentiment)
-    return sentiments
 
 
-x = get_names(tweets)
-print(x)
-print(len(x), len(categories))
-#print(a.sentiment)
-#textt = "hey Mark."
-#print(tweets[1000:1015])
-#print(get_continuous_chunks(tweets[0]))
-#print(get_sentiment(tweets))
+#x = get_names(tweets)
+#print(x)
+#print(len(x), len(categories))
                     
-
