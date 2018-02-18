@@ -112,10 +112,10 @@ def connect_winners(nameList, categories, tweets):
     for tweet in tweets:
         for name in nameList:
             for category in categories:
-                if(not ('lobe' in name[0])):
-                    if ((name[0] in tweet) and (category in tweet)):
+                if(not ('lobe' in name[0]) and (not (name[0] in category))):
+                    if ((name[0] in tweet) and (category.lower() in tweet.lower())):
                         results.append([name[0], category])
-    return results[0:100]
+    return results
                     
 
 #finds number of occurences of all names in a set of tweets 
@@ -164,7 +164,17 @@ def concat(pplawardlist):
     return Counter(x).most_common()
 
 
-
+def give_most_likely(connected_list, cats):
+    answers = []
+    for cat in cats:
+        x = 0
+        for ent in connected_list:
+            if (cat in ent[0]) and x == 0:
+                answers.append(ent[0])
+                x = x + 1
+    return answers
+                
+        
 
 
 
@@ -180,7 +190,7 @@ def get_names(tweetz):
             else:
                 if contain(winner_words, tweet):
                     noms.append(tweet)
-    return concat(connect_winners(findNames(noms)[0:120], categories, noms))
+    return give_most_likely(concat(connect_winners(findNames(noms)[0:200], categories, noms)), categories)
 #    return findNames(noms)[0:120]
  
 
@@ -192,9 +202,9 @@ def get_sentiment(tweetz):
     return sentiments
 
 
-
-print(get_names(tweets))
-
+x = get_names(tweets)
+print(x)
+print(len(x), len(categories))
 #print(a.sentiment)
 #textt = "hey Mark."
 #print(tweets[1000:1015])
