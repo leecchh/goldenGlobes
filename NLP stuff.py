@@ -112,9 +112,9 @@ def connect_winners(nameList, categories, tweets):
     for tweet in tweets:
         for name in nameList:
             for category in categories:
-                if(not ('lobe' in name[0]) and (not (name[0] in category))):
-                    if ((name[0] in tweet) and (category.lower() in tweet.lower())):
-                        results.append([name[0], category])
+                if(not ('lobe' in name) and (not (name in category))):
+                    if ((name in tweet) and (category.lower() in tweet.lower())):
+                        results.append([name, category])
     return results
                     
 
@@ -142,9 +142,29 @@ def findNames(tws):
 	nameList = list()
 	for key,value in nameDict.items():
 		nameList.append((key,value))
-	nameList = sorted(nameList, key=lambda pair: pair[1], reverse=True)
+        nameList = sorted(nameList, key=lambda pair: pair[1], reverse=True)
 
-	return nameList
+	i = 0
+	n = 0
+	length = len(nameList)
+	print(len(nameList), 'namelist length')
+	newset = set()
+	while i < 1400:
+            while n < 1400:
+                if (nameList[i][0] in nameList[n][0]) and i != n:
+                    newset.add(nameList[n][0])
+                    i = i + 1
+                    n = n + 1
+                else:
+                    n = n + 1
+            newset.add(nameList[n][0])
+            i = i + 1
+            n = 0
+                
+
+                
+        print(newset)
+	return newset
 
 
 
@@ -191,7 +211,7 @@ def get_names(tweetz):
             else:
                 if contain(winner_words, tweet):
                     noms.append(tweet)
-    return give_most_likely(concat(connect_winners(findNames(noms)[0:200], categories, noms)), categories)
+    return give_most_likely(concat(connect_winners(findNames(noms), categories, noms)), categories)
 #    return findNames(noms)[0:120]
  
 
@@ -211,13 +231,4 @@ print(len(x), len(categories))
 #print(tweets[1000:1015])
 #print(get_continuous_chunks(tweets[0]))
 #print(get_sentiment(tweets))
-                    
-
-
-
-
-
-
-
-
-
+ 
